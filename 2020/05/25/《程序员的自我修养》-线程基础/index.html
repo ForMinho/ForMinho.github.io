@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content=""><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style.css?v=2.0.5"><link rel="stylesheet" type="text/css" href="/css/highlight.css?v=2.0.5"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><title>《程序员的自我修养》线程基础 | 琛酱的技术日志</title><meta name="generator" content="Hexo 4.2.1"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">《程序员的自我修养》线程基础</h1><a id="logo" href="/.">琛酱的技术日志</a><p class="description">一点点在进步中的小琛酱</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> Home</i></a><a href="/archives/"><i class="fa fa-archive"> Archive</i></a><a href="/about/"><i class="fa fa-user"> About</i></a><a href="/atom.xml"><i class="fa fa-rss"> RSS</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="search"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">《程序员的自我修养》线程基础</h1><div class="post-meta"><a href="/2020/05/25/%E3%80%8A%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB%E3%80%8B-%E7%BA%BF%E7%A8%8B%E5%9F%BA%E7%A1%80/#comments" class="comment-count"></a><p><span class="date">May 25, 2020</span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>Hits</i></i></span></p></div><div class="post-content"><p>多线程开发是现在软件开发的重要组成部分，线程调度、线程安全、用户线程与内核线程之间的映射关系，都是我们需要了解的</p>
+<h2 id="什么是线程"><a href="#什么是线程" class="headerlink" title="什么是线程"></a>什么是线程</h2><p>线程是程序执行的最小单位，一个线程包含线程ID、当前指令指针、寄存器集合和堆栈组合。</p>
+<p>一个进程由一到多个线程组成，每个线程之间共享程序的内存空间及资源。线程与进程的关系如图：</p>
+<p><img src="/images/process_1.jpg" alt=""></p>
+<p>使用多线程的有点主要有：</p>
+<ol>
+<li><p>有效利用时间 比如在网络请求时，会有数秒时间的等待，多线程可以有效利用等待的时间去做其他的请求和处理</p>
+</li>
+<li><p>良好的交互体验 如果只有一个线程，而在该线程中做耗时较久的计算或数据读取，那么会中断与用户之间的交互，呈现卡死的状态，多线程可以让其中一个线程进行数据操作，另一个线程则进行交互</p>
+</li>
+<li><p>程序本身需要并发操作</p>
+</li>
+<li><p>计算机本身具有多线程能力，不浪费CPU</p>
+</li>
+</ol>
+<p>线程可以访问进程内存里的所有数据，实际应用中，线程也有自己的私有存储空间。 从开发的角度看，数据在线程之间的私有与否如图：</p>
+<p><img src="/images/Process_2.png" alt=""></p>
+<p>注： TLS （Thread Local Storage）线程局部存储， 是某些操作系统为线程单独提供的私有空间，通常只有有限的容量</p>
+<h2 id="线程调度与优先级"><a href="#线程调度与优先级" class="headerlink" title="线程调度与优先级"></a>线程调度与优先级</h2><p>当线程数量小于处理器数量时，线程的并发是真正的并发，不同的线程运行在不同的处理器上，彼此之间不会干扰。 如果线程数量大于处理器数量，线程的并发就会受到一些阻碍，此时至少有一个处理器会运行多个线程。</p>
+<p>对于单个处理器对应多线程的情况，操作系统会让这些多线程轮流执行，线程会在极短的时间内切换，看起来像是同时执行。这种在不同线程之间切换的行为称为线程调度。 在其中，线程一般有三种状态： 运行、等待、就绪</p>
+<p>三种状态之间的关系如图：</p>
+<p><img src="/images/ProcessState.jpg" alt=""></p>
+<p>目前的调度管理方式虽然不同系统不同，但是大多借鉴了优先级调度和轮转法。</p>
+<h4 id="轮转法"><a href="#轮转法" class="headerlink" title="轮转法"></a>轮转法</h4><p>指让各个线程轮流执行一小段时间，这决定了线程之间交错执行的特点。 优先级调度则是决定了线程按照什么顺序轮流执行。在具有优先级调度的系统中，线程都会有各自的线程优先级，高优先级的线程会更早运行，而低优先级的线程则要等到其他高优先级的线程执行完才会执行。</p>
+<h4 id="优先级调度"><a href="#优先级调度" class="headerlink" title="优先级调度"></a>优先级调度</h4><p>在优先级调度中，会出现一个问题，即饿死现象。 一个线程的优先级较低，在它执行之前，总有较高优先级的线程执行，那么这个低优先级的线程始终无法执行。为了避免这种现象产生，调度系统通常会逐步提升等待了很长时间但是没有被执行的线程的优先级，这样，一个线程只要等待时间够长，那么起优先级一定会提高到足够让它执行的程度。</p>
+<h2 id="Linux-的多线程"><a href="#Linux-的多线程" class="headerlink" title="Linux 的多线程"></a>Linux 的多线程</h2><p>Linux 内核并不存在真正意义上的线程概念，Linux将所有执行的实体都成为任务（task），每一个任务概念上都类似于一个单线程的进程，具有内存空间、执行实体、文件资源等等。Linux可以通过 fork、exec、clone三种方式创建task。</p>
+<p><img src="/images/processCreate.jpg" alt=""></p>
+<p>fork 函数产生一个和当前进程完全一样的新进程，并和当前进程一样从fork函数里返回。 在fork 函数调用之后，新的任务将启动并和原任务一起从fork函数返回。但不同的是原任务的fork将返回新任务的pid，新任务的fork将返回0。 （理解： fork 函数复制的是当前任务，因此在返回时，返回的是当前任务fork的task，即新任务的pid，而新任务并没有被fork，所以返回的是默认值0）。</p>
+<p>fork 产生新任务的速度非常快，主要的原因是： fork并不复制原任务的内存空间，而是共享一块写时复制内存空间。 写写时复制，是指两个任务可以同时自由的读取同一块内存，但是在任意一个任务视图对内存进行修改时，内存就会复制一份提供给修改方使用，以免影响到其他任务。 （思考： 在swift中有什么操作是用到了写时复制呢？ 写时复制的好处是什么？）</p>
+<p><img src="/images/copyOnWrite.jpg" alt=""></p>
+<p>Fork 只能够产生原任务的镜像，因此必须要使用exec配合才能启动新任务。 Exec可以用新的可执行映像替换当前的可执行映像。 Fork和exec通常用于产生新任务.</p>
+<p><img src="/images/copyOnWrire2.jpg" alt=""></p>
+<p>而如果要产生新线程，则可以使用clone。 Clone函数的原型如下：</p>
+<p>int clone (int (<em>fn)(void</em>),  void* child_stack, int flags, void *arg);</p>
+<p>使用clone可以产生一个新的任务，从指定的位置开始执行，并且共享当前进程的内存空间和文件等，实际效果上产生一个线程, 和fork相比，clone不再复制父进程的栈空间，而是自己创建一个新的。</p>
+<h2 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h2><p>在多线程中，可访问的全局变量和堆数据随时都可能被其他线程改变，因此在多线程并发时数据一致性就变得非常重要。</p>
+<h3 id="原子操作和竞争"><a href="#原子操作和竞争" class="headerlink" title="原子操作和竞争"></a>原子操作和竞争</h3><p><img src="/images/processSafe1.jpg" alt=""></p>
+<p>问： 当两个线程结束时，i 应该等于多少？</p>
+<p>由于线程1 和线程2 是并发执行的，因此两个线程的执行序列并不一定是可控的。 因此两个线程执行完毕后，i 有可能是0、1 或者2。</p>
+<p>在汇编语言中，单条指令的执行时不会被打断的，我们称这种操作为原子性的。 </p>
+<p>像是例子中的自增操作在多线程环境中会出现错误，最主要的原因是这个操作在被编译为汇编语言之后不止一条指令，因此在执行的时候可能执行了一半就被系统调度打断，执行其他的代码。 </p>
+<p>虽然自增操作是原子性操作，但是在复杂场合中，原子性操作就显得没有那么好用了。 （思考： OC语言中，声明属性时，修饰符用nonatomic的原因）</p>
+<p>这时，一个更加有效地手段出现了： 锁</p>
+<h3 id="锁与同步"><a href="#锁与同步" class="headerlink" title="锁与同步"></a>锁与同步</h3><p>为了能够保证多个线程在读写同一个数据时能够得到正确的值，需要将各个线程对同一个数据的访问同步。</p>
+<p>所谓同步，就是指在一个线程访问数据未结束的时候，其他线程不能对同一个数据进行访问。同步最常见的方式是锁，锁是一种非强制机制，每一个线程在访问数据或资源之前都要先视图获取锁，在访问结束之后释放锁。 在锁已经被占用的时候视图获取时，线程会先等待，直到锁重新可用。</p>
+<p>锁有以下几种方式：</p>
+<h4 id="信号量"><a href="#信号量" class="headerlink" title="信号量"></a>信号量</h4><p>这是一种最简单的锁，它只有两种状态：占用与非占用。</p>
+<p>它适合只能被唯一一个线程独占访问的资源。当信号量处于非占用状态时，第一个试图获取该信号量的线程会获得锁，并将信号量置为占用状态，此后其他试图获取该信号量的线程将会等待，直到锁被释放。</p>
+<p>对于多线程并发访问的资源，信号量是一个比较好的选择。一个初始值为N的信号量表示允许N个线程并发访问。线程访问资源的时候，首先获取信号量，并进行如下操作：</p>
+<p>a) 将信号量 减1 </p>
+<p>b) 如果信号量小于0，进入等待状态，否则继续执行</p>
+<p>访问完资源后，线程释放信号量，进行如下操作：</p>
+<p>a) 信号量加一</p>
+<p>b) 如果信号量小于1，唤醒一个等待中的线程。</p>
+<h4 id="互斥量"><a href="#互斥量" class="headerlink" title="互斥量"></a>互斥量</h4><p>互斥量和信号量类似，资源仅允许一个线程访问，但是信号量在整个程序中可以被任意线程获取并释放，即同一个信号量可以被系统中的一个线程获取之后由另一个线程释放。 但是互斥量只能是获取互斥量的线程释放，其他线程是不能释放互斥量的，即使是尝试释放也是无用的。</p>
+<h4 id="临界区"><a href="#临界区" class="headerlink" title="临界区"></a>临界区</h4><p>在术语中，将临界区的锁的获取成为进入临界区，而把锁的释放成为离开临界区。</p>
+<p>临界区和互斥量、信号量的区别在于，互斥量和信号量在程序的任何线程里都是可见的，一个线程创建了一个互斥量或信号量，另一个线程试图去获取该锁是合法的，但临界区的作用仅限于本进程，其他的进程无法获取该锁。</p>
+<h4 id="读写锁"><a href="#读写锁" class="headerlink" title="读写锁"></a>读写锁</h4><p>对于一段数据，多个线程同时读取是没有问题的，但是如果其中一个线程试图对数据进行修改，就必须使用同步手段来避免出错。 信号量、互斥锁、临界区的任何一种锁都可以保证程序争取，但是对于读写频繁，只是偶尔写入的情况来说，锁的频繁获取和释放会比较低效。</p>
+<p>读写锁可以避免这种情况，对于同一个锁，读写锁有两种获取方式：共享（shared）和独占（exclusive），当锁处于自由状态时，任何一种方式获取锁都会成功，将锁置为相应的状态；</p>
+<p>如果锁处于共享状态，其他线程以共享的方式或取锁仍然会成功；但是如果其他线程以独占的方式获取已处于共享状态的锁，那么这个线程必须等待锁被所有线程释放。</p>
+<h4 id="条件变量"><a href="#条件变量" class="headerlink" title="条件变量"></a>条件变量</h4><p>条件变量类似于一个栅栏。</p>
+<p>对于条件变量，线程可以有两种操作，首先线程可以等待条件变量，一个条件变量可以被多个线程等待。其次，线程可以唤醒条件变量，此时某个或所有等待此条件变量的线程都会被唤醒。也就是说，使用条件变量可以让多个线程一起等待某个事情的发生，当事情发生时，所有的线程可以恢复执行。</p>
+<h2 id="为什么有了锁也不一定是线程安全的？"><a href="#为什么有了锁也不一定是线程安全的？" class="headerlink" title="为什么有了锁也不一定是线程安全的？"></a>为什么有了锁也不一定是线程安全的？</h2><p>线程安全是一个非常棘手的问题，即便是合理的使用了锁，也不能代表线程一定是安全的，这是源于编译器的优化导致了代码出现问题。</p>
+<p>一个在日常开发中遇到，且非常经典的例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">volatile T *pInst &#x3D; 0;</span><br><span class="line">T *getInstance() &#123;</span><br><span class="line">	If (pInst &#x3D;&#x3D; NULL) &#123;</span><br><span class="line">		lock();</span><br><span class="line">		If(pInst &#x3D;&#x3D; NULL) &#123;</span><br><span class="line">		  pInst &#x3D; new T;</span><br><span class="line">		&#125;</span><br><span class="line">		unlock();</span><br><span class="line">	&#125;</span><br><span class="line">	Return pInst;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码看起来是没有问题的，当函数返回时，pInst 总是指向一个有效的对象，而lock 和 unlock 防止了多线程竞争的麻烦。双重的if 可以将lock的调用开销减小到最低。</p>
+<p>但是这段代码是有问题，问题来源于CPU的乱序执行。 C++的new 包括了两个步骤：</p>
+<p>1） 分配内存</p>
+<p>2） 调用构造函数</p>
+<p>所以pInst = new T包含了三个步骤：</p>
+<p>1） 分配内存</p>
+<p>2） 在内存的位置上调用构造函数</p>
+<p>3） 将内存的地址赋值给pInst</p>
+<p>在这三步骤， 2 和 3的顺序是可以颠倒的。因此有可能出现这种情况： pInst的值已经不是NULL，但是对象仍然没有构造完成。这时候如果调用getInstance方法，第一个if 表达式pInst == NULL 返回为false，所以这个调用会直接返回未构造完成的对象的地址，这个时候是否会崩溃就取决于如何对这个类的设计了。</p>
+<p>从上面这个例子中可以看到CPU的乱序执行能力会让我们对多线程的安全保障变得困难，因此为了保证线程安全，必须要阻止CPU换序，通常情况下，是调用CPU提供的barrier指令。 </p>
+<p>barrier指令会阻止CPU将该指令之前的指令交换到barrier之后，反之亦然。</p>
+</div><div class="post-copyright"><blockquote><p>Original author: For_Minho</p><p>Original link: <a href="http://yoursite.com/2020/05/25/《程序员的自我修养》-线程基础/">http://yoursite.com/2020/05/25/《程序员的自我修养》-线程基础/</a></p><p>Copyright Notice: Please indicate the source of the reprint (must retain the author's signature and link)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>Share:</span></div></div><div class="post-nav"><a href="/2020/05/28/%E5%BD%93%E6%88%91%E4%BB%AC%E6%8C%89%E4%B8%8BCommand+B%E5%90%8E%EF%BC%8CXcode%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/" class="pre">当我们按下Command+B后，Xcode 做了什么？</a><a href="/2020/05/25/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" class="next">《程序员的自我修养》基础知识</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">Contents</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#什么是线程"><span class="toc-text">什么是线程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#线程调度与优先级"><span class="toc-text">线程调度与优先级</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#轮转法"><span class="toc-text">轮转法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#优先级调度"><span class="toc-text">优先级调度</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-的多线程"><span class="toc-text">Linux 的多线程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#线程安全"><span class="toc-text">线程安全</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#原子操作和竞争"><span class="toc-text">原子操作和竞争</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#锁与同步"><span class="toc-text">锁与同步</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#信号量"><span class="toc-text">信号量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#互斥量"><span class="toc-text">互斥量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#临界区"><span class="toc-text">临界区</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#读写锁"><span class="toc-text">读写锁</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#条件变量"><span class="toc-text">条件变量</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么有了锁也不一定是线程安全的？"><span class="toc-text">为什么有了锁也不一定是线程安全的？</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> Recent</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/06/07/LLVM%20%E7%BC%96%E8%AF%91%E5%87%BA%E7%9A%84%E7%9B%AE%E6%A0%87%E6%96%87%E4%BB%B6%E9%87%8C%E9%9D%A2%E7%A9%B6%E7%AB%9F%E9%9A%90%E8%97%8F%E4%BA%86%E4%BA%9B%E4%BB%80%E4%B9%88%EF%BC%9F/">LLVM 编译出的目标文件里面究竟隐藏了些什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/05/28/%E5%BD%93%E6%88%91%E4%BB%AC%E6%8C%89%E4%B8%8BCommand+B%E5%90%8E%EF%BC%8CXcode%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F/">当我们按下Command+B后，Xcode 做了什么？</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/05/25/%E3%80%8A%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB%E3%80%8B-%E7%BA%BF%E7%A8%8B%E5%9F%BA%E7%A1%80/">《程序员的自我修养》线程基础</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/05/25/%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/">《程序员的自我修养》基础知识</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> Tags</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> Archive</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/">2020</a><span class="archive-list-count">4</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">Site Map</a> |  <a href="/atom.xml">Subscribe to this site</a> |  <a href="/about/">Contact the blogger</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">For_Minho.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/" target="_blank" rel="noopener"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.5"></script><div id="fullscreen-img" class="hide"><span class="close"></span></div><script type="text/javascript" src="/js/imgview.js?v=2.0.5" async></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.5" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
